@@ -19,21 +19,22 @@
 #include <iostream>
 #include <memory>
 #include <vector>
-#include <string>
 
-#include "geometry_msgs/msg/pose_array.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
-#include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
-#include "geometry_msgs/msg/transform_stamped.hpp"
-#include "geometry_msgs/msg/twist_stamped.hpp"
-#include "geometry_msgs/msg/twist_with_covariance_stamped.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "autoware_debug_msgs/msg/float64_stamped.hpp"
-#include "autoware_debug_msgs/msg/float64_multi_array_stamped.hpp"
-#include "tf2/LinearMath/Quaternion.h"
-#include "tf2/utils.h"
-#include "tf2_ros/transform_broadcaster.h"
-#include "tf2_ros/transform_listener.h"
+#include <geometry_msgs/msg/pose_array.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
+#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <autoware_debug_msgs/msg/float64_stamped.hpp>
+#include <autoware_debug_msgs/msg/float64_multi_array_stamped.hpp>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/utils.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2/transform_datatypes.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include "kalman_filter/kalman_filter.hpp"
 #include "kalman_filter/time_delay_kalman_filter.hpp"
@@ -87,6 +88,7 @@ private:
 
   /* parameters */
   bool show_debug_info_;
+  bool debug_input_pass_through_;  //!< @brief use input pose & twist directly as the ekf output for debug
   double ekf_rate_;  //!< @brief  EKF predict rate
   double ekf_dt_;    //!< @brief  = 1 / ekf_rate_
   double tf_rate_;   //!< @brief  tf publish rate
@@ -252,6 +254,12 @@ private:
    * @brief for debug
    */
   void showCurrentX();
+
+  /**
+   * @brief for debug, update current ekf pose from input pose only
+   */
+  void setCurrentResultInputPassThrough();
+
 
   friend class EKFLocalizerTestSuite;  // for test code
 };
