@@ -188,6 +188,8 @@ void EKFLocalizer::timerCallback()
     DEBUG_INFO(
       this->get_logger(),
       "------------------------- end Pose -------------------------\n");
+  } else {
+    RCLCPP_INFO(get_logger(), "no pose received");
   }
 
   /* twist measurement update */
@@ -206,6 +208,8 @@ void EKFLocalizer::timerCallback()
     DEBUG_INFO(
       this->get_logger(),
       "------------------------- end twist -------------------------\n");
+  } else {
+    RCLCPP_INFO(get_logger(), "no twist received");
   }
 
   /* set current pose, twist */
@@ -366,6 +370,8 @@ void EKFLocalizer::callbackInitialPose(
   current_ekf_pose_.header.frame_id = pose_frame_id_;
   current_ekf_pose_.header.stamp = initialpose->header.stamp = this->now();
   current_ekf_pose_.pose = initialpose_transformed.pose.pose;
+
+  RCLCPP_WARN(get_logger(), "initial pose receiverd.");
 
   current_pose_ptr_ = nullptr;
 }

@@ -58,7 +58,7 @@
     <param name="pose_frame_id" value="map"/>
 
     <param name="show_debug_info" value="$(var show_debug_info)"/>
-    <param name="debug_input_pass_through" default="$(var debug_input_pass_through)"/>
+    <param name="debug_input_pass_through" value="$(var debug_input_pass_through)"/>
 
     <param name="enable_yaw_bias_estimation" value="$(var enable_yaw_bias_estimation)"/>
 
