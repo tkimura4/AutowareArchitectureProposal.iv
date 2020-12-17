@@ -11,7 +11,7 @@
       <node pkg="dummy_perception_publisher" exec="dummy_perception_publisher_node" name="dummy_perception_publisher" output="screen">
         <remap from="output/dynamic_object" to="/perception/object_recognition/detection/labeled_clusters" />
         <remap from="output/objects_pose" to="debug/object_pose" />
-        <remap from="output/points_raw" to="/sensing/lidar/no_ground/pointcloud" />
+        <remap from="output/points_raw" to="/sensing/lidar/no_ground/pointcloud/dummy" />
         <remap from="input/object" to="dummy_perception_publisher/object_info" />
         <remap from="input/reset" to="input/reset" />
         <param name="visible_range" value="$(var visible_range)" />
@@ -28,7 +28,7 @@
       <node pkg="dummy_perception_publisher" exec="dummy_perception_publisher_node" name="dummy_perception_publisher" output="screen">
         <remap from="output/dynamic_object" to="/perception/object_recognition/detection/objects" />
         <remap from="output/objects_pose" to="debug/object_pose" />
-        <remap from="output/points_raw" to="/sensing/lidar/no_ground/pointcloud" />
+        <remap from="output/points_raw" to="/sensing/lidar/no_ground/pointcloud/dummy" />
         <remap from="input/object" to="dummy_perception_publisher/object_info" />
         <remap from="input/reset" to="input/reset" />
         <param name="visible_range" value="$(var visible_range)" />
