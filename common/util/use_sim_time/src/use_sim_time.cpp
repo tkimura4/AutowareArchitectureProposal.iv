@@ -54,7 +54,7 @@ UseSimTime::UseSimTime(const rclcpp::NodeOptions & node_options, const bool use_
 
   while (rclcpp::ok()) {
     setUseSimTime();
-    if (set_once_) rclcpp::shutdown();
+    if (set_once_) {rclcpp::shutdown();}
   }
 }
 
@@ -70,7 +70,8 @@ bool UseSimTime::hasParameter(
   using rclcpp::spin_until_future_complete;
   if (
     spin_until_future_complete(this->get_node_base_interface(), list_param, timeout_chrono) ==
-    rclcpp::FutureReturnCode::SUCCESS) {
+    rclcpp::FutureReturnCode::SUCCESS)
+  {
     auto vars = list_param.get();
     *result = vars.names.size() > 0;
     return true;
@@ -92,7 +93,8 @@ bool UseSimTime::getParameter(
   using rclcpp::spin_until_future_complete;
   if (
     spin_until_future_complete(this->get_node_base_interface(), get_param, timeout_chrono) ==
-    rclcpp::FutureReturnCode::SUCCESS) {
+    rclcpp::FutureReturnCode::SUCCESS)
+  {
     auto vars = get_param.get();
     *result = vars.front().as_bool();
     return true;
@@ -108,15 +110,15 @@ bool UseSimTime::setParameter(
 {
   auto set_parameters_results = client->set_parameters({rclcpp::Parameter(param_name, param)});
   return rclcpp::spin_until_future_complete(
-           this->get_node_base_interface(), set_parameters_results) ==
-           rclcpp::executor::FutureReturnCode::SUCCESS &&
+    this->get_node_base_interface(), set_parameters_results) ==
+         rclcpp::executor::FutureReturnCode::SUCCESS &&
          set_parameters_results.get().front().successful;
 }
 
 void UseSimTime::setUseSimTime()
 {
   using namespace std::chrono_literals;
-  if (set_once_) RCLCPP_INFO(get_logger(), "start searching nodes");
+  if (set_once_) {RCLCPP_INFO(get_logger(), "start searching nodes");}
   rclcpp::Rate(1.0).sleep();
   std::vector<std::string> node_names = get_node_names();
 
@@ -129,14 +131,14 @@ void UseSimTime::setUseSimTime()
   node_names.erase(
     std::remove_if(
       node_names.begin(), node_names.end(),
-      [](std::string s) { return s.find(std::string("ros2cli_daemon")) != std::string::npos; }),
+      [](std::string s) {return s.find(std::string("ros2cli_daemon")) != std::string::npos;}),
     node_names.end());
 
   // remove ros2 cli
   node_names.erase(
     std::remove_if(
       node_names.begin(), node_names.end(),
-      [](std::string s) { return s.find(std::string("_ros2cli")) != std::string::npos; }),
+      [](std::string s) {return s.find(std::string("_ros2cli")) != std::string::npos;}),
     node_names.end());
 
   // remove transform_listener_impl
@@ -152,7 +154,7 @@ void UseSimTime::setUseSimTime()
   node_names.erase(
     std::remove_if(
       node_names.begin(), node_names.end(),
-      [](std::string s) { return s.find(std::string("clock_publisher")) != std::string::npos; }),
+      [](std::string s) {return s.find(std::string("clock_publisher")) != std::string::npos;}),
     node_names.end());
 
   if (set_once_) {
@@ -176,13 +178,16 @@ void UseSimTime::setUseSimTime()
       bool has_param;
       if (
         hasParameter(parameters_client, "use_sim_time", async_req_timeout_, &has_param) &&
-        has_param) {
+        has_param)
+      {
         bool use_sim_time_param;
         if (getParameter(
-              parameters_client, "use_sim_time", async_req_timeout_, &use_sim_time_param)) {
+            parameters_client, "use_sim_time", async_req_timeout_, &use_sim_time_param))
+        {
           if (use_sim_time_param != use_sim_time_) {
             if (setParameter(
-                  parameters_client, "use_sim_time", async_req_timeout_, use_sim_time_)) {
+                parameters_client, "use_sim_time", async_req_timeout_, use_sim_time_))
+            {
               RCLCPP_INFO(get_logger(), "Success, %s", n.c_str());
               // Success to set use sim time
               set_node_list_.emplace_back(n);
@@ -202,7 +207,7 @@ void UseSimTime::setUseSimTime()
     parameters_client.reset();
   }
 
-  if (set_once_) RCLCPP_INFO(get_logger(), "--------------------------------------------");
+  if (set_once_) {RCLCPP_INFO(get_logger(), "--------------------------------------------");}
 }
 
 void usage()
