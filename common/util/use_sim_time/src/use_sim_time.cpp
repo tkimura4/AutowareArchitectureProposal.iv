@@ -42,7 +42,7 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
   bool use_sim_time_;
   bool set_once_;
-  double async_req_timeout_ = 1.0;
+  double async_req_timeout_ = 0.1;
 };
 
 UseSimTime::UseSimTime(const rclcpp::NodeOptions & node_options, const bool use_sim_time)
