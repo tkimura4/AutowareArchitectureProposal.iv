@@ -27,22 +27,89 @@ public:
 private:
   void setUseSimTime();
   void timerCallback();
+  bool hasParameter(
+    const rclcpp::AsyncParametersClient::SharedPtr client, const std::string & param_name,
+    const double timeout, bool * result);
+
+  bool getParameter(
+    const rclcpp::AsyncParametersClient::SharedPtr client, const std::string & param_name,
+    const double timeout, bool * result);
+
+  bool setParameter(
+    const rclcpp::AsyncParametersClient::SharedPtr client, const std::string & param_name,
+    const double timeout, bool param);
 
   rclcpp::TimerBase::SharedPtr timer_;
   bool use_sim_time_;
   bool set_once_;
+  double async_req_timeout_ = 1.0;
 };
 
 UseSimTime::UseSimTime(const rclcpp::NodeOptions & node_options, const bool use_sim_time)
 : rclcpp::Node("use_sim_time", node_options)
 {
   use_sim_time_ = use_sim_time;
-  set_once_ = this->declare_parameter("set_once", false);
+  set_once_ = this->declare_parameter<bool>("set_once", false);
 
   while (rclcpp::ok()) {
     setUseSimTime();
     if (set_once_) rclcpp::shutdown();
   }
+}
+
+bool UseSimTime::hasParameter(
+  const rclcpp::AsyncParametersClient::SharedPtr client, const std::string & param_name,
+  const double timeout, bool * result)
+{
+  std::vector<std::string> params;
+  params.emplace_back(param_name);
+  auto list_param = client->list_parameters(params, 1);
+
+  const auto timeout_chrono = std::chrono::duration<double>(timeout);
+  using rclcpp::spin_until_future_complete;
+  if (
+    spin_until_future_complete(this->get_node_base_interface(), list_param, timeout_chrono) ==
+    rclcpp::FutureReturnCode::SUCCESS) {
+    auto vars = list_param.get();
+    *result = vars.names.size() > 0;
+    return true;
+  }
+  // timeout
+  RCLCPP_DEBUG(get_logger(), "Timeout: hasParameter()");
+  return false;
+}
+
+bool UseSimTime::getParameter(
+  const rclcpp::AsyncParametersClient::SharedPtr client, const std::string & param_name,
+  const double timeout, bool * result)
+{
+  std::vector<std::string> params;
+  params.emplace_back(param_name);
+  auto get_param = client->get_parameters(params);
+
+  const auto timeout_chrono = std::chrono::duration<double>(timeout);
+  using rclcpp::spin_until_future_complete;
+  if (
+    spin_until_future_complete(this->get_node_base_interface(), get_param, timeout_chrono) ==
+    rclcpp::FutureReturnCode::SUCCESS) {
+    auto vars = get_param.get();
+    *result = vars.front().as_bool();
+    return true;
+  }
+  // timeout
+  RCLCPP_DEBUG(get_logger(), "Timeout: getParameter()");
+  return false;
+}
+
+bool UseSimTime::setParameter(
+  const rclcpp::AsyncParametersClient::SharedPtr client, const std::string & param_name,
+  const double timeout, bool param)
+{
+  auto set_parameters_results = client->set_parameters({rclcpp::Parameter(param_name, param)});
+  return rclcpp::spin_until_future_complete(
+           this->get_node_base_interface(), set_parameters_results) ==
+           rclcpp::executor::FutureReturnCode::SUCCESS &&
+         set_parameters_results.get().front().successful;
 }
 
 void UseSimTime::setUseSimTime()
@@ -90,15 +157,18 @@ void UseSimTime::setUseSimTime()
       RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
       break;
     }
-    auto parameters_client = std::make_shared<rclcpp::SyncParametersClient>(this, n);
+    auto parameters_client = std::make_shared<rclcpp::AsyncParametersClient>(this, n);
     if (parameters_client->wait_for_service(100ms)) {
-      if (parameters_client->has_parameter("use_sim_time")) {
-        const bool use_sim_time_param = parameters_client->get_parameter<bool>("use_sim_time");
-        if (use_sim_time_param != use_sim_time_) {
-          auto set_parameters_results = parameters_client->set_parameters({
-            rclcpp::Parameter("use_sim_time", use_sim_time_),
-          });
-          if (set_parameters_results.front().successful) {
+      bool has_param;
+      if (
+        hasParameter(parameters_client, "use_sim_time", async_req_timeout_, &has_param) &&
+        has_param) {
+        bool use_sim_time_param;
+        if (
+          getParameter(
+            parameters_client, "use_sim_time", async_req_timeout_, &use_sim_time_param) &&
+          use_sim_time_param != use_sim_time_) {
+          if (setParameter(parameters_client, "use_sim_time", async_req_timeout_, use_sim_time_)) {
             RCLCPP_INFO(get_logger(), "Success, %s", n.c_str());
           } else {
             RCLCPP_ERROR(get_logger(), "Failure, %s", n.c_str());
