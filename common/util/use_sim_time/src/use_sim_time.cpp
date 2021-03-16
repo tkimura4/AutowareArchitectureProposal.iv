@@ -73,6 +73,13 @@ void UseSimTime::setUseSimTime()
       }),
     node_names.end());
 
+  // remove clock publisher
+  node_names.erase(
+    std::remove_if(
+      node_names.begin(), node_names.end(),
+      [](std::string s) { return s.find(std::string("clock_publisher")) != std::string::npos; }),
+    node_names.end());
+
   if (set_once_) {
     RCLCPP_INFO(get_logger(), "found %lu nodes.", node_names.size());
     RCLCPP_INFO(get_logger(), "--------------------------------------------");
@@ -84,7 +91,7 @@ void UseSimTime::setUseSimTime()
       break;
     }
     auto parameters_client = std::make_shared<rclcpp::SyncParametersClient>(this, n);
-    if (parameters_client->wait_for_service(1s)) {
+    if (parameters_client->wait_for_service(100ms)) {
       if (parameters_client->has_parameter("use_sim_time")) {
         const bool use_sim_time_param = parameters_client->get_parameter<bool>("use_sim_time");
         if (use_sim_time_param != use_sim_time_) {
