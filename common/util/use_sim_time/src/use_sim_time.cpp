@@ -131,6 +131,13 @@ void UseSimTime::setUseSimTime()
       [](std::string s) { return s.find(std::string("ros2cli_daemon")) != std::string::npos; }),
     node_names.end());
 
+  // remove ros2 cli
+  node_names.erase(
+    std::remove_if(
+      node_names.begin(), node_names.end(),
+      [](std::string s) { return s.find(std::string("_ros2cli")) != std::string::npos; }),
+    node_names.end());
+
   // remove transform_listener_impl
   node_names.erase(
     std::remove_if(
