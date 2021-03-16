@@ -42,7 +42,8 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
   bool use_sim_time_;
   bool set_once_;
-  double async_req_timeout_ = 0.1;
+  double async_req_timeout_ = 0.3;
+  std::vector<std::string> set_node_list_;
 };
 
 UseSimTime::UseSimTime(const rclcpp::NodeOptions & node_options, const bool use_sim_time)
@@ -164,6 +165,12 @@ void UseSimTime::setUseSimTime()
       RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
       break;
     }
+
+    if (std::find(set_node_list_.begin(), set_node_list_.end(), n) != set_node_list_.end()) {
+      // skip (Already use_sim_time is set)
+      continue;
+    }
+
     auto parameters_client = std::make_shared<rclcpp::AsyncParametersClient>(this, n);
     if (parameters_client->wait_for_service(100ms)) {
       bool has_param;
@@ -171,14 +178,21 @@ void UseSimTime::setUseSimTime()
         hasParameter(parameters_client, "use_sim_time", async_req_timeout_, &has_param) &&
         has_param) {
         bool use_sim_time_param;
-        if (
-          getParameter(
-            parameters_client, "use_sim_time", async_req_timeout_, &use_sim_time_param) &&
-          use_sim_time_param != use_sim_time_) {
-          if (setParameter(parameters_client, "use_sim_time", async_req_timeout_, use_sim_time_)) {
-            RCLCPP_INFO(get_logger(), "Success, %s", n.c_str());
+        if (getParameter(
+              parameters_client, "use_sim_time", async_req_timeout_, &use_sim_time_param)) {
+          if (use_sim_time_param != use_sim_time_) {
+            if (setParameter(
+                  parameters_client, "use_sim_time", async_req_timeout_, use_sim_time_)) {
+              RCLCPP_INFO(get_logger(), "Success, %s", n.c_str());
+              // Success to set use sim time
+              set_node_list_.emplace_back(n);
+            } else {
+              RCLCPP_ERROR(get_logger(), "Failure, %s", n.c_str());
+            }
           } else {
-            RCLCPP_ERROR(get_logger(), "Failure, %s", n.c_str());
+            // No need to set parameter (use_sim_time_param == use_sim_time_)
+            RCLCPP_INFO(get_logger(), "No need to set parameter, %s", n.c_str());
+            set_node_list_.emplace_back(n);
           }
         }
       }
