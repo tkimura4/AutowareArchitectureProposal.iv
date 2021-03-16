@@ -25,13 +25,30 @@ public:
   UseSimTime(const rclcpp::NodeOptions & node_options, const bool use_sim_time);
 
 private:
+  void setUseSimTime();
+  void timerCallback();
+
+  rclcpp::TimerBase::SharedPtr timer_;
+  bool use_sim_time_;
+  bool set_once_;
 };
 
 UseSimTime::UseSimTime(const rclcpp::NodeOptions & node_options, const bool use_sim_time)
 : rclcpp::Node("use_sim_time", node_options)
 {
+  use_sim_time_ = use_sim_time;
+  set_once_ = this->declare_parameter("set_once", false);
+
+  while (rclcpp::ok()) {
+    setUseSimTime();
+    if (set_once_) rclcpp::shutdown();
+  }
+}
+
+void UseSimTime::setUseSimTime()
+{
   using namespace std::chrono_literals;
-  RCLCPP_INFO(get_logger(), "start searching nodes");
+  if (set_once_) RCLCPP_INFO(get_logger(), "start searching nodes");
   rclcpp::Rate(1.0).sleep();
   std::vector<std::string> node_names = get_node_names();
 
@@ -44,7 +61,7 @@ UseSimTime::UseSimTime(const rclcpp::NodeOptions & node_options, const bool use_
   node_names.erase(
     std::remove_if(
       node_names.begin(), node_names.end(),
-      [](std::string s) {return s.find(std::string("ros2cli_daemon")) != std::string::npos;}),
+      [](std::string s) { return s.find(std::string("ros2cli_daemon")) != std::string::npos; }),
     node_names.end());
 
   // remove transform_listener_impl
@@ -56,8 +73,10 @@ UseSimTime::UseSimTime(const rclcpp::NodeOptions & node_options, const bool use_
       }),
     node_names.end());
 
-  RCLCPP_INFO(get_logger(), "found %lu nodes.", node_names.size());
-  RCLCPP_INFO(get_logger(), "--------------------------------------------");
+  if (set_once_) {
+    RCLCPP_INFO(get_logger(), "found %lu nodes.", node_names.size());
+    RCLCPP_INFO(get_logger(), "--------------------------------------------");
+  }
 
   for (const auto & n : node_names) {
     if (!rclcpp::ok()) {
@@ -67,23 +86,25 @@ UseSimTime::UseSimTime(const rclcpp::NodeOptions & node_options, const bool use_
     auto parameters_client = std::make_shared<rclcpp::SyncParametersClient>(this, n);
     if (parameters_client->wait_for_service(1s)) {
       if (parameters_client->has_parameter("use_sim_time")) {
-        auto set_parameters_results = parameters_client->set_parameters(
-        {
-          rclcpp::Parameter("use_sim_time", use_sim_time),
-        });
-        if (set_parameters_results.front().successful) {
-          RCLCPP_INFO(get_logger(), "Success, %s", n.c_str());
-        } else {
-          RCLCPP_ERROR(get_logger(), "Failure, %s", n.c_str());
+        const bool use_sim_time_param = parameters_client->get_parameter<bool>("use_sim_time");
+        if (use_sim_time_param != use_sim_time_) {
+          auto set_parameters_results = parameters_client->set_parameters({
+            rclcpp::Parameter("use_sim_time", use_sim_time_),
+          });
+          if (set_parameters_results.front().successful) {
+            RCLCPP_INFO(get_logger(), "Success, %s", n.c_str());
+          } else {
+            RCLCPP_ERROR(get_logger(), "Failure, %s", n.c_str());
+          }
         }
       }
     } else {
       RCLCPP_ERROR(get_logger(), "Timeout, %s", n.c_str());
     }
+    parameters_client.reset();
   }
 
-  RCLCPP_INFO(get_logger(), "--------------------------------------------");
-  rclcpp::shutdown();
+  if (set_once_) RCLCPP_INFO(get_logger(), "--------------------------------------------");
 }
 
 void usage()
